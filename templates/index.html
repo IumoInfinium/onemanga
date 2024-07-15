@@ -1,0 +1,93 @@
+{% include "base.html" %}
+
+{% block content %}
+<main style="text-align: center; margin-top: 2rem;">
+
+    <button id="check_updates">
+        Check now?
+    </button>
+    
+        {% for manga in context['available'] %}
+            <div name="manga-section" style="border:1px solid black; margin:1rem; display: flex; flex-direction: column; justify-content: center;">  
+                
+                <div>
+                    <div style="display: flex; justify-content: space-around;">
+                        <p>
+                             <a href={{ url_for("view_manga_page", manga_id=manga['id'] ) }} >
+                                 {{ manga['name']}}
+                            </a>
+                        </p> 
+                        <p> Read at :
+                            <a href={{manga['link']}}>
+                                {{ manga['site']}}
+                            </a>
+                        </p>
+                    </div>
+                </div>
+                <div>
+                    <!-- <button
+                    onclick="UpdateReadManga( `{{ manga['id'] }}`, `{{ manga['link'] }}`, `{{ manga['site']}}` , `{{ manga['last_updated_chapter_link'] }}`)"
+                    >
+                    Latest Chapter - {{ manga['last_updated_chapter_metadata'] }}
+                    </button> -->
+                    <button
+                        onclick="window.open(`{{ manga['last_updated_manga_link'] }}`, target='_blank')"
+                    >
+                    Latest Chapter - {{ manga['last_updated_chapter_metadata'] }}
+                    </button>
+                    <button
+                        onclick="window.open(`{{ manga['last_read_chapter_link'] }}`, target = '_blank')"
+                    >
+                    Last Read - {{ manga['last_read_chapter_metadata'] }}
+                    </button>
+                    <p> {{manga['last_read_chapter_link']}} </p>
+                </div>
+                
+            </div>
+        {% else %}
+            <div name="empty-section">
+                <p>ohh no, no mangas available to read now...</p>
+            </div>
+        {% endfor %}
+    
+    <script>
+        window.localStorage.setItem('updates_button_pressed_count', 0);
+        let updates_button_pressed = window.localStorage.getItem('updates_button_pressed_count');
+
+        const update_button = document.getElementById("check_updates");
+
+        update_button.addEventListener("click", function(){
+            updates_button_pressed = true;
+
+            const url = `{{url_for('updates')}}`
+
+            // Send the metadata payload to server
+            const payload = {
+                "user_id" : "iumo",
+                "requested_at" : Math.floor((new Date()).getTime() / 1000)
+            }
+
+            // Send a update request to server
+            fetch(url, {
+                method: "POST",
+                headers: {
+                    "Content-Type": 'application/json',
+                },
+                body: JSON.stringify(payload)
+            })
+            .then((res) => res.json())
+            .then((data) => {
+                if (data?.code == 200){
+                    window.location.href=`{{ url_for('homepage') }}`
+                    updates_button_pressed = 1;
+                }
+                else{
+                    alert("No updates to show now");
+                    updates_button_pressed = 0;
+                }
+            })
+            .catch((err) => console.error("ERROR :"))
+        })
+</script>
+</main>
+{% endblock %}

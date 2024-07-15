@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mget</title>
+</head>
+<body style="display: flex; flex-direction: column;justify-content: center; align-items: center;">
+  <div>
+      {% with messages = get_flashed_messages() %}
+      {% if messages %}
+      <ul class=flashes>
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% endwith %}
+  </div>
+
+<div>
+    ||
+    <a href="/">Homepage </a>
+    ||
+    <a href="/add">Add  </a>
+    ||
+    <a href="/view">View All</a>
+    ||
+</div>
+<div class="search-section" style="margin:1rem; padding:.2rem;">
+  <input type="text" id="search-input"/>
+  <button onclick="clearResults()">
+    Clear X
+  </button>
+</div>
+
+  <div class="search-results" id="search-results" required>
+
+  </div>
+    {% block content%}
+    {% endblock %}
+</body>
+
+<script>
+  
+  function UpdateReadManga(manga_id, manga_link, manga_site, manga_chapter_link){
+
+    const URL = `{{url_for('forward_to_manga_link')}}`
+    const payload = {
+        "manga_id" : manga_id,
+        "manga_link" : manga_link,
+        "manga_site" : manga_site,
+        "manga_chapter_link" : manga_chapter_link,
+    }
+    fetch(URL, {
+        method: "POST",
+            headers: {
+                "Content-Type": 'application/json',
+            },
+            body: JSON.stringify(payload)
+    })
+    .then((res) => res.json())
+    .then((data) => {
+        console.log("redirecting..");
+    })
+    .catch((err) => console.error("ERROR :", err))
+
+    // move to new page and then reload current page (if possible)
+    window.open(payload['manga_chapter_link'], target="_blank")
+    window.location.reload();
+  }
+</script>
+
+<script>
+  function throttle(mainFunction, delay) {
+    let timerFlag = null; // Variable to keep track of the timer
+
+    // Returning a throttled version 
+    return (...args) => {
+      if (timerFlag === null) { // If there is no timer currently running
+        mainFunction(...args); // Execute the main function 
+            timerFlag = setTimeout(() => { // Set a timer to clear the timerFlag after the specified delay
+              timerFlag = null; // Clear the timerFlag to allow the main function to be executed again
+            }, delay);
+          }
+    };
+  }
+
+  // function to remove all the nodes
+  function removeAllChildNodes(parent) {
+      while (parent.firstChild) {
+          parent.removeChild(parent.firstChild);
+      }
+  }
+
+  function clearResults(){
+    removeAllChildNodes(document.getElementById('search-results'));
+    document.getElementById('search-input').value = "";
+  }
+  const searchInput = document.getElementById('search-input');
+  const searchResults = document.getElementById('search-results');
+
+  const URL = `{{ url_for('search_manga') }}`
+  searchInput.addEventListener('input', throttle(() => {
+    var input = searchInput.value.trim();
+
+    if(input == "") return
+
+      fetch(URL, {
+          method: "POST",
+              headers: {
+                  "Content-Type": 'application/json',
+              },
+              body: JSON.stringify({
+                'name' : searchInput.value
+              })
+      })
+      .then((res) => res.json())
+      .then((data) => {
+          console.log(data);
+
+          removeAllChildNodes(searchResults);
+          data['result'].forEach(ele => {
+            // let child_element = `<p> <a href=${ele['link']}> ${ele['name']}  </a></p>`
+            var result = document.createElement('div');
+            var result_link = document.createElement('a');
+            result_link.href = ele['link'];
+            result_link.text = ele['name'] + new Date().getSeconds();
+
+            result.appendChild(result_link)
+            searchResults.appendChild(
+              result
+            )
+            
+          });
+      })
+      .catch((err) => console.error("ERROR :", err))
+  }, 500))
+
+</script>
+</html>

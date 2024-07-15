@@ -1,0 +1,198 @@
+{% include "base.html" %}
+
+{% block content %}
+
+<!-- 
+    {{ context['id'] }}
+    <label> {{ context['name']  }}</label>
+    {{ context['link'] }} -->
+    <!-- <a href={{ url_for('delete_manga', manga_id=context['id'])}}> DELETE ?</a> -->
+
+
+    <div style="display: flex; flex-direction: column; align-items: center;">
+        
+        <div id="manga-view">
+
+            <div>
+                <p id="manga-name"> 
+                    {{ context['name'] }}
+                </p>
+                <p id="manga-site"> {{ context['site'] }} </p>
+                <label> Manga URL : </label>
+                <p> <a href={{ context['link'] }} id="manga-link"> {{ context['link'] }}</a> </p>
+            </div>
+            <div>
+                <label>
+                    Actions
+                </label>
+                <span>
+                    <button onclick="showEditInputs()"> 
+                        EDIT 
+                    </button>
+                </span>
+                
+                <span>
+                    <button onclick="deleteManga(`{{ context['id'] }}`)" class="delete-button" name="{{context['id']}}"> 
+                        DELETE ? 
+                    </button>
+                </span>
+                <br>
+            </div>      
+            <br>
+            <div>
+                <button onclick=`window.open({{ context.last_updated_chapter_link }})`>
+                    {{ context['last_updated_chapter_metadata'] }}
+                </button>
+                <button onclick=`window.open({{ context.last_read_chapter_link }})`>
+                    {{ context['last_read_chapter_metadata'] }}
+                </button>
+                <!-- {{ context['chapters']}} -->
+                
+            </div>
+            <div style="overflow-y: scroll; height:400px; margin:1rem;">
+                {% for chapter in context['chapters'] %}
+                
+                    {% if chapter['link'] == context['last_read_chapter_link'] %}
+                        <p
+                            onclick="UpdateReadManga( `{{ context['id'] }}`, `{{ context['link'] }}`, `{{ context['site']}}` , `{{ chapter['link'] }}`)"
+                            style="border:1px solid black; margin: 1rem; padding:0.5rem; background-color: lightgray;"
+                        >
+                            {{ chapter['metadata'] }} - (Last Read)
+                        </p>
+                    {% elif chapter['link'] == context['last_updated_chapter_link'] %}
+                        <p
+                            onclick="UpdateReadManga( `{{ context['id'] }}`, `{{ context['link'] }}`, `{{ context['site']}}` , `{{ chapter['link'] }}`)"
+                            style="border:1px solid black; margin: 1rem; padding:0.5rem; background-color: antiquewhite;"
+                        >
+                            {{ chapter['metadata'] }} - (Latest Chapter)
+                        </p>
+                    {% else %}
+                        <p
+                            onclick="UpdateReadManga( `{{ context['id'] }}`, `{{ context['link'] }}`, `{{ context['site']}}` , `{{ chapter['link'] }}`)"
+                            style="border:1px solid black; margin: 1rem; padding:0.5rem"
+                        >
+                            {{ chapter['metadata'] }}
+                        </p>
+                    {% endif %}
+                <!-- <p> <a href={{ chapter['link'] }}> {{ chapter['metadata']}}</a> </p> -->
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Edit Manga Section View -->
+        <div id="edit-manga-view" style="display: flex; flex-direction:column; padding:1rem; gap:1rem;">
+                <div>
+                    <label> Manga Name</label>
+                    <input id="input_manga_name" name="input_manga_name" value="{{ context['name']}}"/ required>
+                </div>
+
+
+                <div>
+                    <label> Site</label>
+                    <select name="input_manga_site" id="input_manga_site" required>
+                        {% for site in context['supported_sites'] %}
+                            {% if context['site'] == site %}
+                                <option value="{{ site }}" selected> Selected : {{ site }} </option>
+                            {% else %}
+                                <option value="{{ site }}" > {{ site }} </option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label> Link</label>
+                    <input id="input_manga_link" name="input_manga_link" value="{{ context['link'] }}"/>
+                </div>
+                
+                <div>
+                    <label for=""> Last Read </label>
+                    <select name="input_last_read_chapter" id="input_last_read_chapter">
+                        {% for chapter in context['chapters'] %}
+                            {% if chapter['link'] == context['last_read_chapter_link'] %}
+                            <option value="{{ chapter['link'] }}" selected> {{ chapter['metadata'] }} </option>
+                            {% else %}
+                                <option value="{{ chapter['link'] }}"> {{ chapter['metadata'] }} </option>    
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <button onclick="editManga(`{{context['id'] }}`)">
+                        Update Manga!
+                    </button>
+                </div>
+        </div>
+
+
+<script>
+    // disable the manga edit view
+    document.getElementById('edit-manga-view').style.display = 'none';
+
+    function deleteManga(id){
+        const data ={ 'user_id': 4 };
+        const url = `{{ url_for('delete_manga', manga_id=manga_id) }}` + `/${id}`
+        
+        console.log(id);
+        
+        fetch(url, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then((res) => res.json())
+        .then((data) => {
+            if(data?.code === 200) 
+                window.location.replace(`{{ url_for('homepage') }}`)
+
+        })
+        .catch((err) => console.error("Error:", error));
+    }
+
+    function showEditInputs(){
+        document.getElementById('manga-view').style.display = "none";
+        document.getElementById('edit-manga-view').style.display = "flex";
+    }
+
+    function editManga(manga_id){
+    
+        let payload ={ 
+            'name' : document.getElementById('input_manga_name').value,
+            'link': document.getElementById('input_manga_link').value,
+            'site': document.getElementById('input_manga_site').value,
+            'old_link' : `{{ context['link'] }}`,
+        };
+        if (`{{ context['last_read_chapter_link']}}` != document.getElementById('input_last_read_chapter').value){
+            payload['last_read_chapter_link_update'] = document.getElementById('input_last_read_chapter').value;
+        }
+
+        if(payload['link'] == "" || payload['name'] == "" || payload['site'] == ""){
+            alert("Please fill the fields!");
+            return;
+        }
+        const url = `{{ url_for('edit_manga', manga_id=manga_id) }}` + `/${manga_id}`
+        
+        console.log(manga_id);
+        
+        fetch(url, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        })
+        .then((res) => res.json())
+        .then((data) => {
+            if(data?.code === 200) 
+                window.location.reload();
+            else 
+                alert("Failed to update manga!")
+        })
+        .catch((err) => console.error("Error:", error));
+
+    }
+</script>
+{% endblock %}

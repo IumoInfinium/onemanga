@@ -1,0 +1,12 @@
+# ignore env files
+.env
+!sample.env
+
+# ignore virtual environments
+.venv
+
+# ignore sqlite database
+*.db
+
+# ignore __pycache__ files
+__pycache__

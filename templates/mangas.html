@@ -1,0 +1,47 @@
+{% include "base.html" %}
+
+{% block content %}
+
+
+{% for manga in context['mangas'] %}
+    
+<p>
+    <div id="manga-section-{{manga['id']}}">
+        <a href={{ url_for("view_manga_page", manga_id=manga['id'] ) }}> <label>{{ manga['name']  }}</label></a>
+        <label> {{ manga['link'] }} </label>
+    
+        <a href={{ url_for('delete_manga', manga_id=manga['id'])}}> </a>
+        <button onclick="deleteManga(`{{ manga['id'] }}`)" class="delete-button" name="{{manga['id']}}"> DELETE ? </button>
+    </div>
+</p>
+{% endfor %}
+<script>
+    function manga_delete_check(id, data){
+        if(data?.code === 200){
+            console.log("hello");
+            const manga_section = document.getElementById(`manga-section-${id}`);
+            manga_section.remove();
+        }
+        else console.log("failed!");
+    }
+
+    function deleteManga(id){
+        const data ={ 'user_id': 4 };
+        const url = `{{ url_for('delete_manga', manga_id=manga_id) }}` + `/${id}`
+        
+        console.log(id);
+        
+        fetch(url, {
+            method: "POST",
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then((res) => res.json())
+        .then((data) => manga_delete_check(id, data))
+        .catch((err) => console.error("Error:", err));
+    }
+</script>
+
+{% endblock %}
